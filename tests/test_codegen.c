@@ -2,6 +2,7 @@
 #include "jag/parser.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(void) {
     const char *source =
@@ -17,10 +18,12 @@ int main(void) {
     opts.runtime_header_dir = "include";
     opts.runtime_lib_dir = "build";
 
-    bool gen_ok = jag_codegen_generate_c(ast, "/tmp/test_codegen.c", &opts);
+    const char *tmp_c = "test_codegen_tmp.c";
+    bool gen_ok = jag_codegen_generate_c(ast, tmp_c, &opts);
     assert(gen_ok == true);
 
     jag_ast_free(ast);
+    remove(tmp_c);
     printf("Codegen tests passed successfully!\n");
     return 0;
 }

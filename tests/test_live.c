@@ -13,7 +13,7 @@
 #endif
 
 int main(void) {
-    const char *test_file = "/tmp/test_live_watch.jag";
+    const char *test_file = "test_live_watch_tmp.jag";
     FILE *f = fopen(test_file, "w");
     assert(f != NULL);
     fprintf(f, "live.on(\"v1\");\n");
@@ -34,6 +34,7 @@ int main(void) {
 #endif
 
     f = fopen(test_file, "w");
+    assert(f != NULL);
     fprintf(f, "live.on(\"v2\");\n");
     fclose(f);
 
