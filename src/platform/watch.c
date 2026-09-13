@@ -4,12 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <sys/time.h>
 #include <unistd.h>
 #ifdef __linux__
 #include <sys/inotify.h>

@@ -2,7 +2,14 @@
 #define JAG_LIVE_H
 
 #include "jag/common.h"
+
+#ifdef _WIN32
+#include <stdint.h>
+typedef intptr_t jag_pid_t;
+#else
 #include <sys/types.h>
+typedef pid_t jag_pid_t;
+#endif
 
 typedef struct {
     char *filename;
@@ -25,7 +32,7 @@ void jag_filewatcher_free(JagFileWatcher *watcher);
 typedef struct {
     char *source_filename;
     char *bin_filename;
-    pid_t child_pid;
+    jag_pid_t child_pid;
     JagFileWatcher watcher;
     bool active;
 } JagLiveSupervisor;
