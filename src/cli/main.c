@@ -128,10 +128,10 @@ int main(int argc, char **argv) {
     }
 
     char out_bin[1024];
-    snprintf(out_bin, sizeof(out_bin), "/tmp/jag_app_%d", (int)getpid());
+    snprintf(out_bin, sizeof(out_bin), "jag_app_%d", (int)getpid());
 
     char out_c[1024];
-    snprintf(out_c, sizeof(out_c), "/tmp/jag_app_%d.c", (int)getpid());
+    snprintf(out_c, sizeof(out_c), "jag_app_%d.c", (int)getpid());
 
     JagCodegenOptions opts = { 0 };
     opts.runtime_header_dir = "include";
