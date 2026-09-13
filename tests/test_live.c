@@ -3,7 +3,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+#ifdef _WIN32
+#include <io.h>
+#include <windows.h>
+#define unlink _unlink
+#else
 #include <unistd.h>
+#endif
 
 int main(void) {
     const char *test_file = "/tmp/test_live_watch.jag";
@@ -19,8 +26,12 @@ int main(void) {
     bool changed1 = jag_filewatcher_poll_changes(&watcher, 10);
     assert(changed1 == false);
 
+#ifdef _WIN32
+    Sleep(100);
+#else
     struct timespec ts = { 0, 100000000L };
     nanosleep(&ts, NULL);
+#endif
 
     f = fopen(test_file, "w");
     fprintf(f, "live.on(\"v2\");\n");

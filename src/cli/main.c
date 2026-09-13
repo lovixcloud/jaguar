@@ -6,7 +6,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <io.h>
+#include <process.h>
+#define unlink _unlink
+#define getpid _getpid
+#define WEXITSTATUS(status) (status)
+#else
 #include <unistd.h>
+#include <sys/wait.h>
+#endif
 
 static void print_usage(void) {
     printf("Jaguar Compiler %s\n\n", JAG_VERSION);
