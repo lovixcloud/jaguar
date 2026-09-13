@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
 if(MSVC)
-    add_compile_options(/W4 /WX)
+    add_compile_options(/W4 /WX /D_CRT_SECURE_NO_WARNINGS)
 else()
     add_compile_options(-Wall -Wextra -Werror -pedantic)
 endif()
@@ -21,6 +21,9 @@ set(RUNTIME_SRCS
 )
 
 add_library(jaguar_runtime STATIC ${RUNTIME_SRCS})
+if(WIN32)
+    target_link_libraries(jaguar_runtime PUBLIC ws2_32)
+endif()
 
 # Compiler Core Library
 set(COMPILER_SRCS
@@ -78,10 +81,10 @@ add_executable(test_live tests/test_live.c)
 target_link_libraries(test_live PRIVATE jaguar_core)
 add_test(NAME test_live COMMAND test_live)
 
+add_executable(test_cli tests/test_cli.c)
+add_test(NAME test_cli COMMAND test_cli)
+
 include(GNUInstallDirs)
 install(TARGETS jag DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(TARGETS jaguar_runtime DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY include/jag DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-add_executable(test_cli tests/test_cli.c)
-add_test(NAME test_cli COMMAND test_cli)
