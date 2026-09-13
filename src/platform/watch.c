@@ -6,10 +6,14 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
-#include <unistd.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
 #ifdef __linux__
 #include <sys/inotify.h>
+#endif
 #endif
 
 static uint64_t get_file_mtime(const char *filename) {
@@ -27,7 +31,7 @@ void jag_filewatcher_init(JagFileWatcher *watcher) {
     watcher->inotify_fd = -1;
     watcher->watch_fd = -1;
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(_WIN32)
     watcher->inotify_fd = inotify_init1(IN_NONBLOCK);
 #endif
 }
@@ -41,7 +45,7 @@ void jag_filewatcher_add_file(JagFileWatcher *watcher, const char *filename) {
     watcher->files[watcher->count].filename = jag_strdup(filename);
     watcher->files[watcher->count].last_mtime = get_file_mtime(filename);
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(_WIN32)
     if (watcher->inotify_fd >= 0) {
         watcher->watch_fd = inotify_add_watch(watcher->inotify_fd, filename, IN_MODIFY | IN_ATTRIB);
     }
@@ -53,7 +57,7 @@ void jag_filewatcher_add_file(JagFileWatcher *watcher, const char *filename) {
 bool jag_filewatcher_poll_changes(JagFileWatcher *watcher, int timeout_ms) {
     bool changed = false;
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(_WIN32)
     if (watcher->inotify_fd >= 0) {
         char buf[1024];
         ssize_t len = read(watcher->inotify_fd, buf, sizeof(buf));
@@ -72,10 +76,14 @@ bool jag_filewatcher_poll_changes(JagFileWatcher *watcher, int timeout_ms) {
     }
 
     if (!changed && timeout_ms > 0) {
+#ifdef _WIN32
+        Sleep((DWORD)timeout_ms);
+#else
         struct timespec ts;
         ts.tv_sec = timeout_ms / 1000;
         ts.tv_nsec = (timeout_ms % 1000) * 1000000L;
         nanosleep(&ts, NULL);
+#endif
     }
 
     return changed;
@@ -83,7 +91,7 @@ bool jag_filewatcher_poll_changes(JagFileWatcher *watcher, int timeout_ms) {
 
 void jag_filewatcher_free(JagFileWatcher *watcher) {
     if (!watcher) return;
-#ifdef __linux__
+#if defined(__linux__) && !defined(_WIN32)
     if (watcher->inotify_fd >= 0) {
         close(watcher->inotify_fd);
     }

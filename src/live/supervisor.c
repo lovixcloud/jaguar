@@ -2,12 +2,20 @@
 #include "jag/live.h"
 #include "jag/parser.h"
 #include "jag/semantic.h"
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <process.h>
+typedef intptr_t jag_pid_t;
+#else
+#include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
+typedef pid_t jag_pid_t;
+#endif
 
 void jag_live_supervisor_init(JagLiveSupervisor *sup, const char *source_filename, const char *bin_filename) {
     sup->source_filename = jag_strdup(source_filename);
@@ -19,13 +27,31 @@ void jag_live_supervisor_init(JagLiveSupervisor *sup, const char *source_filenam
     jag_filewatcher_add_file(&sup->watcher, source_filename);
 }
 
-static pid_t spawn_child(const char *bin_filename) {
+static jag_pid_t spawn_child(const char *bin_filename) {
+#ifdef _WIN32
+    intptr_t handle = _spawnl(_P_NOWAIT, bin_filename, bin_filename, NULL);
+    return (jag_pid_t)handle;
+#else
     pid_t pid = fork();
     if (pid == 0) {
         execl(bin_filename, bin_filename, (char *)NULL);
         exit(1);
     }
     return pid;
+#endif
+}
+
+static void kill_child(jag_pid_t pid) {
+    if (pid <= 0) return;
+#ifdef _WIN32
+    HANDLE hProc = (HANDLE)pid;
+    TerminateProcess(hProc, 0);
+    CloseHandle(hProc);
+#else
+    kill((pid_t)pid, SIGTERM);
+    int status;
+    waitpid((pid_t)pid, &status, 0);
+#endif
 }
 
 static bool recompile_source(const char *source_filename, const char *bin_filename) {
@@ -83,7 +109,7 @@ static bool recompile_source(const char *source_filename, const char *bin_filena
     }
 
     bool compile_ok = jag_codegen_compile_native(tmp_c, bin_filename, &opts);
-    unlink(tmp_c);
+    remove(tmp_c);
 
     jag_semantic_cleanup(&analyzer);
     jag_ast_free(ast);
@@ -102,7 +128,7 @@ void jag_live_supervisor_run(JagLiveSupervisor *sup) {
     printf("Watching project file: %s...\n", sup->source_filename);
 
     if (recompile_source(sup->source_filename, sup->bin_filename)) {
-        sup->child_pid = spawn_child(sup->bin_filename);
+        sup->child_pid = (pid_t)spawn_child(sup->bin_filename);
     }
 
     while (sup->active) {
@@ -111,14 +137,13 @@ void jag_live_supervisor_run(JagLiveSupervisor *sup) {
 
             if (recompile_source(sup->source_filename, sup->bin_filename)) {
                 if (sup->child_pid > 0) {
-                    kill(sup->child_pid, SIGTERM);
-                    int status;
-                    waitpid(sup->child_pid, &status, 0);
+                    kill_child((jag_pid_t)sup->child_pid);
                 }
                 printf("[jaguar:live] Rebuild succeeded! Restarting application...\n\n");
-                sup->child_pid = spawn_child(sup->bin_filename);
+                sup->child_pid = (pid_t)spawn_child(sup->bin_filename);
             }
         } else {
+#ifndef _WIN32
             if (sup->child_pid > 0) {
                 int status;
                 pid_t res = waitpid(sup->child_pid, &status, WNOHANG);
@@ -126,15 +151,14 @@ void jag_live_supervisor_run(JagLiveSupervisor *sup) {
                     sup->child_pid = -1;
                 }
             }
+#endif
         }
     }
 }
 
 void jag_live_supervisor_cleanup(JagLiveSupervisor *sup) {
     if (sup->child_pid > 0) {
-        kill(sup->child_pid, SIGTERM);
-        int status;
-        waitpid(sup->child_pid, &status, 0);
+        kill_child((jag_pid_t)sup->child_pid);
     }
     jag_filewatcher_free(&sup->watcher);
     free(sup->source_filename);
