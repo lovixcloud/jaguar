@@ -1,0 +1,8 @@
+var values: num[] = [10, 20, 30];
+
+values.append(40);
+values.sort();
+
+for value in values {
+    live.on(value);
+}

@@ -1,0 +1,7 @@
+fixed userName: string = "Joe";
+fixed userAge: num = 33;
+fixed speedOfLight: decimal = 3.0E8;
+
+live.on(userName);
+live.on(userAge);
+live.on(speedOfLight);

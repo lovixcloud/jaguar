@@ -1,0 +1,4 @@
+var age: num = 33;
+
+live.deg(num, 33, age);
+live.log("Debug check completed");

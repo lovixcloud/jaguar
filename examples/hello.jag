@@ -1,0 +1,7 @@
+live = "1";
+
+var name: string = "Jaguar";
+
+live.on("Hello, World!");
+live.on("Welcome to Jaguar Programming Language");
+live.on(name);

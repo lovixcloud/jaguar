@@ -1,0 +1,8 @@
+class User {
+    public name: string;
+    private age: num;
+
+    public fun getAge(): num {
+        return age;
+    }
+}
