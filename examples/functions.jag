@@ -1,0 +1,12 @@
+fun add(a: num, b: num): num {
+    return a + b;
+}
+
+fun greet(name: string): void {
+    live.on("Hello " + name);
+}
+
+var total: num = add(10, 20);
+
+greet("Jaguar");
+live.on(total);

@@ -1,0 +1,6 @@
+struct Point {
+    x: decimal;
+    y: decimal;
+}
+
+var point: Point;

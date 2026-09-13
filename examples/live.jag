@@ -1,0 +1,5 @@
+live = "1";
+
+var message: string = "Version 1";
+
+live.on(message);

@@ -1,0 +1,25 @@
+live = "1";
+
+fixed language: string = "Jaguar";
+var name: string = "Developer";
+var age: num = 33;
+var score: decimal = 98.71;
+var active: bool = true;
+
+fun add(a: num, b: num): num {
+    return a + b;
+}
+
+live.on("Hello, World!");
+live.on("Welcome to " + language);
+live.on(name);
+live.on(age);
+live.on(score);
+live.on(active);
+
+var total: num = add(10, 20);
+
+live.on("Total: " + total);
+
+live.deg(num, 33, age);
+live.log("Jaguar live system active");

@@ -1,0 +1,9 @@
+var name: string = "Joseph";
+var age: num = 33;
+var score: decimal = 98.71;
+var isMale: bool = true;
+
+live.on(name);
+live.on(age);
+live.on(score);
+live.on(isMale);

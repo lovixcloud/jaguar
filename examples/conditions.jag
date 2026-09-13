@@ -1,0 +1,12 @@
+var age: num = 33;
+
+if (age >= 18) {
+    live.on("Adult");
+} elif (age >= 13) {
+    live.on("Teenager");
+} else {
+    live.on("Child");
+}
+
+var status: string = age >= 18 ? "adult" : "minor";
+live.on(status);

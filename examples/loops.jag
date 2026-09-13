@@ -1,0 +1,12 @@
+var count: num = 0;
+
+loop (count < 5) {
+    live.on(count);
+    count += 1;
+}
+
+var scores: num[] = [90, 80, 95];
+
+for score in scores {
+    live.on(score);
+}

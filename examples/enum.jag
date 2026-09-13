@@ -1,0 +1,9 @@
+enum Status {
+    Backlog,
+    Working,
+    Testing,
+    Review,
+    Done
+}
+
+var status: Status = Status.Backlog;
