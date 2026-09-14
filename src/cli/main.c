@@ -1,15 +1,19 @@
+#define _GNU_SOURCE
+#define _DEFAULT_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "jag/codegen.h"
 #include "jag/common.h"
 #include "jag/live.h"
 #include "jag/parser.h"
 #include "jag/semantic.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #ifdef _WIN32
 #include <io.h>
 #include <process.h>
+#include <windows.h>
 #define unlink _unlink
 #define getpid _getpid
 #define WEXITSTATUS(status) (status)
@@ -47,6 +51,25 @@ static char *read_file_contents(const char *filename) {
     return buf;
 }
 
+static void resolve_abs_path(const char *rel_path, char *out_path, size_t out_len) {
+#ifdef _WIN32
+    if (_fullpath(out_path, rel_path, out_len) == NULL) {
+        strncpy(out_path, rel_path, out_len - 1);
+        out_path[out_len - 1] = '\0';
+    }
+#else
+    char *res = realpath(rel_path, NULL);
+    if (res) {
+        strncpy(out_path, res, out_len - 1);
+        out_path[out_len - 1] = '\0';
+        free(res);
+    } else {
+        strncpy(out_path, rel_path, out_len - 1);
+        out_path[out_len - 1] = '\0';
+    }
+#endif
+}
+
 static void resolve_search_paths(const char *exec_path, char *header_dir, size_t header_len, char *lib_dir, size_t lib_len) {
     const char *env_inc = getenv("JAG_INCLUDE_DIR");
     const char *env_lib = getenv("JAG_LIB_DIR");
@@ -55,34 +78,30 @@ static void resolve_search_paths(const char *exec_path, char *header_dir, size_t
         strncpy(header_dir, env_inc, header_len - 1);
         header_dir[header_len - 1] = '\0';
     } else {
-        strncpy(header_dir, "include", header_len - 1);
-        header_dir[header_len - 1] = '\0';
+        resolve_abs_path("include", header_dir, header_len);
     }
 
     if (env_lib) {
         strncpy(lib_dir, env_lib, lib_len - 1);
         lib_dir[lib_len - 1] = '\0';
     } else {
-        strncpy(lib_dir, "build", lib_len - 1);
-        lib_dir[lib_len - 1] = '\0';
+        resolve_abs_path("build", lib_dir, lib_len);
     }
 
     if (exec_path && strlen(exec_path) > 0) {
-        char base[2048];
-        strncpy(base, exec_path, sizeof(base) - 1);
-        base[sizeof(base) - 1] = '\0';
+        char abs_exec[2048];
+        resolve_abs_path(exec_path, abs_exec, sizeof(abs_exec));
 
-        char *last_slash = strrchr(base, '/');
-        char *last_backslash = strrchr(base, '\\');
+        char *last_slash = strrchr(abs_exec, '/');
+        char *last_backslash = strrchr(abs_exec, '\\');
         char *p = (last_slash > last_backslash) ? last_slash : last_backslash;
         if (p) {
             *p = '\0';
 
-            char cand_inc[2048], cand_lib[2048];
-            strcpy(cand_inc, base);
+            // Header candidate search
+            char cand_inc[2048];
+            strcpy(cand_inc, abs_exec);
             strcat(cand_inc, "/../include");
-            strcpy(cand_lib, base);
-            strcat(cand_lib, "/../lib");
 
             char test_hdr[2048];
             strcpy(test_hdr, cand_inc);
@@ -92,20 +111,47 @@ static void resolve_search_paths(const char *exec_path, char *header_dir, size_t
             if (f) {
                 fclose(f);
                 if (!env_inc) { strncpy(header_dir, cand_inc, header_len - 1); header_dir[header_len - 1] = '\0'; }
-                if (!env_lib) { strncpy(lib_dir, cand_lib, lib_len - 1); lib_dir[lib_len - 1] = '\0'; }
             } else {
-                strcpy(test_hdr, base);
+                strcpy(test_hdr, abs_exec);
                 strcat(test_hdr, "/include/jag/runtime.h");
                 f = fopen(test_hdr, "r");
                 if (f) {
                     fclose(f);
                     if (!env_inc) {
-                        strcpy(header_dir, base);
+                        strcpy(header_dir, abs_exec);
                         strcat(header_dir, "/include");
                     }
+                }
+            }
+
+            // Library candidate search
+            char test_lib[2048];
+            strcpy(test_lib, abs_exec);
+            strcat(test_lib, "/libjaguar_runtime.a");
+
+            f = fopen(test_lib, "r");
+            if (!f) {
+                strcpy(test_lib, abs_exec);
+                strcat(test_lib, "/jaguar_runtime.lib");
+                f = fopen(test_lib, "r");
+            }
+            if (f) {
+                fclose(f);
+                if (!env_lib) { strncpy(lib_dir, abs_exec, lib_len - 1); lib_dir[lib_len - 1] = '\0'; }
+            } else {
+                strcpy(test_lib, abs_exec);
+                strcat(test_lib, "/../lib/libjaguar_runtime.a");
+                f = fopen(test_lib, "r");
+                if (!f) {
+                    strcpy(test_lib, abs_exec);
+                    strcat(test_lib, "/../lib/jaguar_runtime.lib");
+                    f = fopen(test_lib, "r");
+                }
+                if (f) {
+                    fclose(f);
                     if (!env_lib) {
-                        strncpy(lib_dir, base, lib_len - 1);
-                        lib_dir[lib_len - 1] = '\0';
+                        strcpy(lib_dir, abs_exec);
+                        strcat(lib_dir, "/../lib");
                     }
                 }
             }

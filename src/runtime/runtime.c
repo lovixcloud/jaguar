@@ -214,3 +214,14 @@ void jag_live_deg(const char *type_name, JagVal expected, JagVal actual) {
     free(e_str);
     free(a_str);
 }
+
+bool jag_val_equals(JagVal a, JagVal b) {
+    if (a.kind != b.kind) return false;
+    switch (a.kind) {
+        case JAG_VAL_NUM: return a.as.num == b.as.num;
+        case JAG_VAL_DECIMAL: return a.as.decimal == b.as.decimal;
+        case JAG_VAL_BOOL: return a.as.boolean == b.as.boolean;
+        case JAG_VAL_STRING: return strcmp(a.as.string ? a.as.string : "", b.as.string ? b.as.string : "") == 0;
+        default: return false;
+    }
+}
