@@ -48,6 +48,7 @@ JagVal jag_val_string(const char *str);
 JagVal jag_val_array(JagArray *arr);
 JagVal jag_val_null(void);
 
+bool jag_val_equals(JagVal a, JagVal b);
 char *jag_val_to_string(JagVal v);
 char *jag_str_concat(const char *a, const char *b);
 

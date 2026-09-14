@@ -21,7 +21,7 @@ bool jag_codegen_compile_native(const char *c_filename, const char *bin_filename
     }
 
 #ifdef _WIN32
-    // 1. Try MSVC cl.exe with jaguar_runtime.lib
+    // Try CL with libraries in build, build/Debug, build/Release, or current dir
     snprintf(cmd, sizeof(cmd), "cl /nologo /O2 /std:c17 /I\"%s\" /I. \"%s\" \"%s/jaguar_runtime.lib\" ws2_32.lib /Fe:\"%s\" > NUL 2>&1",
              header_dir, c_filename, lib_dir, bin_filename);
     if (run_cmd(cmd)) return true;
@@ -34,18 +34,17 @@ bool jag_codegen_compile_native(const char *c_filename, const char *bin_filename
              header_dir, c_filename, lib_dir, bin_filename);
     if (run_cmd(cmd)) return true;
 
-    // 2. Try GCC on Windows
-    snprintf(cmd, sizeof(cmd), "gcc -O2 -std=c17 -I\"%s\" -I. -L\"%s\" -L\"%s/Debug\" -L\"%s/Release\" \"%s\" -ljaguar_runtime -lws2_32 -o \"%s\" > NUL 2>&1",
+    snprintf(cmd, sizeof(cmd), "cl /nologo /O2 /std:c17 /I\"%s\" /I. \"%s\" jaguar_runtime.lib ws2_32.lib /Fe:\"%s\" > NUL 2>&1",
+             header_dir, c_filename, bin_filename);
+    if (run_cmd(cmd)) return true;
+
+    // Try GCC with libraries
+    snprintf(cmd, sizeof(cmd), "gcc -O2 -std=c17 -I\"%s\" -I. -L\"%s\" -L\"%s/Debug\" -L\"%s/Release\" -L. \"%s\" -ljaguar_runtime -lws2_32 -o \"%s\" > NUL 2>&1",
              header_dir, lib_dir, lib_dir, lib_dir, c_filename, bin_filename);
     if (run_cmd(cmd)) return true;
 
-    // 3. Try Clang on Windows
-    snprintf(cmd, sizeof(cmd), "clang -O2 -std=c17 -I\"%s\" -I. -L\"%s\" -L\"%s/Debug\" -L\"%s/Release\" \"%s\" -ljaguar_runtime -lws2_32 -o \"%s\" > NUL 2>&1",
-             header_dir, lib_dir, lib_dir, lib_dir, c_filename, bin_filename);
-    if (run_cmd(cmd)) return true;
-
-    // 4. Try fallback without redirection to display build error
-    snprintf(cmd, sizeof(cmd), "gcc -O2 -std=c17 -I\"%s\" -I. -L\"%s\" -L\"%s/Debug\" -L\"%s/Release\" \"%s\" -ljaguar_runtime -lws2_32 -o \"%s\"",
+    // Try Clang with libraries
+    snprintf(cmd, sizeof(cmd), "clang -O2 -std=c17 -I\"%s\" -I. -L\"%s\" -L\"%s/Debug\" -L\"%s/Release\" -L. \"%s\" -ljaguar_runtime -lws2_32 -o \"%s\" > NUL 2>&1",
              header_dir, lib_dir, lib_dir, lib_dir, c_filename, bin_filename);
     if (run_cmd(cmd)) return true;
 #else
