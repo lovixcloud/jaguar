@@ -47,6 +47,72 @@ static char *read_file_contents(const char *filename) {
     return buf;
 }
 
+static void resolve_search_paths(const char *exec_path, char *header_dir, size_t header_len, char *lib_dir, size_t lib_len) {
+    const char *env_inc = getenv("JAG_INCLUDE_DIR");
+    const char *env_lib = getenv("JAG_LIB_DIR");
+
+    if (env_inc) {
+        strncpy(header_dir, env_inc, header_len - 1);
+        header_dir[header_len - 1] = '\0';
+    } else {
+        strncpy(header_dir, "include", header_len - 1);
+        header_dir[header_len - 1] = '\0';
+    }
+
+    if (env_lib) {
+        strncpy(lib_dir, env_lib, lib_len - 1);
+        lib_dir[lib_len - 1] = '\0';
+    } else {
+        strncpy(lib_dir, "build", lib_len - 1);
+        lib_dir[lib_len - 1] = '\0';
+    }
+
+    if (exec_path && strlen(exec_path) > 0) {
+        char base[2048];
+        strncpy(base, exec_path, sizeof(base) - 1);
+        base[sizeof(base) - 1] = '\0';
+
+        char *last_slash = strrchr(base, '/');
+        char *last_backslash = strrchr(base, '\\');
+        char *p = (last_slash > last_backslash) ? last_slash : last_backslash;
+        if (p) {
+            *p = '\0';
+
+            char cand_inc[2048], cand_lib[2048];
+            strcpy(cand_inc, base);
+            strcat(cand_inc, "/../include");
+            strcpy(cand_lib, base);
+            strcat(cand_lib, "/../lib");
+
+            char test_hdr[2048];
+            strcpy(test_hdr, cand_inc);
+            strcat(test_hdr, "/jag/runtime.h");
+
+            FILE *f = fopen(test_hdr, "r");
+            if (f) {
+                fclose(f);
+                if (!env_inc) { strncpy(header_dir, cand_inc, header_len - 1); header_dir[header_len - 1] = '\0'; }
+                if (!env_lib) { strncpy(lib_dir, cand_lib, lib_len - 1); lib_dir[lib_len - 1] = '\0'; }
+            } else {
+                strcpy(test_hdr, base);
+                strcat(test_hdr, "/include/jag/runtime.h");
+                f = fopen(test_hdr, "r");
+                if (f) {
+                    fclose(f);
+                    if (!env_inc) {
+                        strcpy(header_dir, base);
+                        strcat(header_dir, "/include");
+                    }
+                    if (!env_lib) {
+                        strncpy(lib_dir, base, lib_len - 1);
+                        lib_dir[lib_len - 1] = '\0';
+                    }
+                }
+            }
+        }
+    }
+}
+
 int main(int argc, char **argv) {
     if (argc < 2) {
         print_usage();
@@ -127,15 +193,19 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    char out_bin[1024];
+    char out_bin[2048];
     snprintf(out_bin, sizeof(out_bin), "jag_app_%d", (int)getpid());
 
-    char out_c[1024];
+    char out_c[2048];
     snprintf(out_c, sizeof(out_c), "jag_app_%d.c", (int)getpid());
 
+    char header_dir[2048];
+    char lib_dir[2048];
+    resolve_search_paths(argv[0], header_dir, sizeof(header_dir), lib_dir, sizeof(lib_dir));
+
     JagCodegenOptions opts = { 0 };
-    opts.runtime_header_dir = "include";
-    opts.runtime_lib_dir = "build";
+    opts.runtime_header_dir = header_dir;
+    opts.runtime_lib_dir = lib_dir;
 
     bool gen_ok = jag_codegen_generate_c(ast, out_c, &opts);
     if (!gen_ok) {
@@ -147,7 +217,7 @@ int main(int argc, char **argv) {
     }
 
     if (strcmp(command, "build") == 0) {
-        char target_bin[1024];
+        char target_bin[2048];
         int fname_len = (int)strlen(filename);
         if (fname_len > 4 && strcmp(filename + fname_len - 4, ".jag") == 0) {
             snprintf(target_bin, sizeof(target_bin), "%.*s", fname_len - 4, filename);
