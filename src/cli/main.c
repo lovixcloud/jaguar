@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
             printf("Built target binary: %s\n", target_bin);
             return 0;
         } else {
-            fprintf(stderr, "Build failed.\n");
+            fprintf(stderr, "Native compilation failed. Please ensure a C compiler (gcc, clang, cl, or tcc) is in your PATH or set JAG_CC.\n");
             return 1;
         }
     }
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
     free(source);
 
     if (!compile_ok) {
-        fprintf(stderr, "Native compilation failed.\n");
+        fprintf(stderr, "Native compilation failed. Please ensure a C compiler (gcc, clang, cl, or tcc) is in your PATH or set JAG_CC.\n");
         return 1;
     }
 
