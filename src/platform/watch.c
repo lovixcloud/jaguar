@@ -3,13 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <sys/stat.h>
 #include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 #ifdef __linux__
 #include <sys/inotify.h>
@@ -17,11 +17,19 @@
 #endif
 
 static uint64_t get_file_mtime(const char *filename) {
+#ifdef _WIN32
+    WIN32_FILE_ATTRIBUTE_DATA data;
+    if (GetFileAttributesExA(filename, GetFileExInfoStandard, &data)) {
+        return (((uint64_t)data.ftLastWriteTime.dwHighDateTime) << 32) | (uint64_t)data.ftLastWriteTime.dwLowDateTime;
+    }
+    return 0;
+#else
     struct stat st;
     if (stat(filename, &st) == 0) {
         return (uint64_t)st.st_mtime;
     }
     return 0;
+#endif
 }
 
 void jag_filewatcher_init(JagFileWatcher *watcher) {
